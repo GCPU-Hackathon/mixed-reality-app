@@ -126,6 +126,28 @@ public class BrainMenuOpenerXRHands : MonoBehaviour
         if (menuInstance == null)
             menuInstance = Instantiate(menuPrefab);
 
+        var linker = menuInstance.GetComponentInChildren<BrainMenuToggleToVolumeDVR>(true);
+        if (linker != null)
+        {
+            // trouve le VolumeDVR actif dans la scène
+            VolumeDVR dvr = Object.FindFirstObjectByType<VolumeDVR>();
+            if (dvr != null)
+            {
+                linker.volumeDVR = dvr;
+
+                // force sync initiale des toggles -> DVR
+                linker.SyncAll();
+            }
+            else
+            {
+                Debug.LogWarning("[BrainMenuOpenerXRHands] Aucun VolumeDVR trouvé dans la scène pour lier le menu.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[BrainMenuOpenerXRHands] Pas de BrainMenuToggleToVolumeDVR sur le menuInstance.");
+        }
+
         menuInstance.transform.SetPositionAndRotation(pos, rot);
         menuInstance.SetActive(true);
 

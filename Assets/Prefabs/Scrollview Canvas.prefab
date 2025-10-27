@@ -184,9 +184,8 @@ GameObject:
   - component: {fileID: 9071236926472923532}
   - component: {fileID: 6703238884230561468}
   - component: {fileID: 1885016847124609365}
-  - component: {fileID: 61713335560440680}
-  - component: {fileID: 7845945288650513880}
-  - component: {fileID: -5914057769966150386}
+  - component: {fileID: 8860260406109473346}
+  - component: {fileID: -2522130777268308079}
   m_Layer: 0
   m_Name: Scrollview Canvas
   m_TagString: Untagged
@@ -261,7 +260,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
+  m_PresetInfoIsWorld: 1
 --- !u!114 &6703238884230561468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -298,7 +297,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
---- !u!114 &61713335560440680
+--- !u!114 &8860260406109473346
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -307,59 +306,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 5382792744704176038}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62719ade4cc24c1489b11a9f7781af31, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BrainMenuBinder
-  state: {fileID: 11400000, guid: 1321bcbb407cc604c9d7ee06cae6819a, type: 2}
-  contentRoot: {fileID: 5313797921631931910}
-  keyFromObjectName: 1
-  keyPrefix: Item/
-  forceAllOnAtFirstRun: 1
-  firstRunKey: BrainMenu_DefaultsApplied_v1
---- !u!114 &7845945288650513880
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5382792744704176038}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: edf810c17e24f0b4fb48272c91337a76, type: 3}
+  m_Script: {fileID: 11500000, guid: 8829659c85915ee4d84579ce3093edfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  brainRoot: {fileID: 0}
-  autoFindPath: Brain_Pivot/brain_tumor_scene
-  recursive: 0
-  requireMeshRenderer: 1
-  contentRoot: {fileID: 5313797921631931910}
+--- !u!114 &-2522130777268308079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5382792744704176038}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44f0ddb867f93d244acaeb2b24708725, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  volumeDVR: {fileID: 0}
+  contentRoot: {fileID: 4751723822830420469}
   toggleItemPrefab: {fileID: 95560894095785928, guid: 9e24b500b36c3ef4fba7691fa31a946b, type: 3}
-  labelChildName: Label
-  state: {fileID: 11400000, guid: 1321bcbb407cc604c9d7ee06cae6819a, type: 2}
-  keyPrefix: Item/
-  forceAllOnAtFirstRun: 1
-  firstRunKey: BrainMenu_DefaultsApplied_v1
-  nameMappings:
-  - objectName: Brain
-    displayName: Brain
-  - objectName: Glioma
-    displayName: Glioma
---- !u!114 &-5914057769966150386
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5382792744704176038}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a26cc890c5c6acf43979dd4b55f93dea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  brainRoot: {fileID: 0}
-  contentRoot: {fileID: 5313797921631931910}
-  labelChildName: Label
-  readLabelText: 1
+  hideFullyHiddenAtStart: 1
 --- !u!1 &5701653971619672220
 GameObject:
   m_ObjectHideFlags: 0
@@ -751,11 +716,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6183026900792136172, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
       propertyPath: m_Size
-      value: 0.9999309
+      value: 0.999874
       objectReference: {fileID: 0}
     - target: {fileID: 6183026900792136172, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
       propertyPath: m_Value
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6183026901214721044, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
       propertyPath: m_Name
@@ -855,7 +820,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6183026902371939695, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.014905933
+      value: -0.00946841
       objectReference: {fileID: 0}
     - target: {fileID: 6183026902415741009, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
       propertyPath: m_Enabled
@@ -982,10 +947,5 @@ PrefabInstance:
 --- !u!224 &5313797920641961852 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 6183026901214721045, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
-  m_PrefabInstance: {fileID: 2049385475038559081}
-  m_PrefabAsset: {fileID: 0}
---- !u!224 &5313797921631931910 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 6183026902371939695, guid: cc0d6bd3aca3b5d4a986e27ce112e071, type: 3}
   m_PrefabInstance: {fileID: 2049385475038559081}
   m_PrefabAsset: {fileID: 0}

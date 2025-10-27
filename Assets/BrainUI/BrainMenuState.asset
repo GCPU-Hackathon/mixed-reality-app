@@ -21,3 +21,5 @@ MonoBehaviour:
     value: 1
   - key: Item/Tumor Core
     value: 1
+  - key: Item/Item 1
+    value: 0
