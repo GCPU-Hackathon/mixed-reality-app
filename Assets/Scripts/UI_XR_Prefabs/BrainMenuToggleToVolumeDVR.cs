@@ -7,225 +7,284 @@ using TMPro;
 #endif
 
 /// <summary>
-/// Construit dynamiquement le menu de visibilité des labels à partir
-/// du VolumeDVR chargé (volumeDVR.labelInfos).
-/// Chaque entrée = un toggle qui appelle SetLabelVisible(labelIndex, isOn).
+/// Génère une liste de toggles dans un ScrollView à partir de volumeDVR.labelInfos.
+/// Chaque toggle pilote la visibilité du label correspondant dans VolumeDVR.
 /// </summary>
 public class BrainMenuToggleToVolumeDVR : MonoBehaviour
 {
     [Header("Volume DVR Target")]
-    [Tooltip("Référence vers le composant VolumeDVR déjà présent dans la scène (et déjà initialisé).")]
     public VolumeDVR volumeDVR;
 
-    [Header("UI Setup")]
-    [Tooltip("Le Content du ScrollRect où on va instancier les toggles.")]
+    [Header("UI Wiring")]
+    [Tooltip("Le Content du ScrollRect (Scroll View/Viewport/Content). " +
+             "Si vide, je vais essayer de le trouver automatiquement.")]
     public RectTransform contentRoot;
 
-    [Tooltip("Prefab d'un item (doit contenir un Toggle + un texte). " +
-             "Optionnellement une Image pour afficher la couleur du label.")]
-    public GameObject toggleItemPrefab;
+    [Tooltip("Prefab de l'item (doit contenir Toggle+Texte...). " +
+             "Si null, je prends l'enfant 'Item 1' dans Content comme template.")]
+    public GameObject itemPrefab;
 
-    [Header("Filtrage")]
-    [Tooltip("Masquer les labels qui ont alpha initiale ~0 (donc invisibles par défaut) ?")]
+    [Tooltip("Ignorer les labels qui ne sont pas visibles par défaut ?")]
     public bool hideFullyHiddenAtStart = true;
 
     // runtime
+    private GameObject _template; // le prefab effectif utilisé (itemPrefab ou Item 1)
+    private bool _wiredUI   = false;
+    private bool _builtMenu = false;
+
+    // mapping toggles -> index de label DVR
     private readonly List<Toggle> _toggles = new();
     private readonly Dictionary<Toggle, int> _toggleToLabel = new();
 
-    private bool _built = false; // pour éviter double build si OnEnable/Start rejoue
-
     void Awake()
     {
-        // fallback auto si pas assigné dans l'inspecteur
-        if (contentRoot == null)
-        {
-            var sr = GetComponentInChildren<ScrollRect>(true);
-            if (sr && sr.content)
-                contentRoot = sr.content;
-        }
-
-        if (!contentRoot)
-            Debug.LogError("[BrainMenuToggleToVolumeDVR] contentRoot is not assigned.");
-
-        if (!toggleItemPrefab)
-            Debug.LogError("[BrainMenuToggleToVolumeDVR] toggleItemPrefab is not assigned.");
-
-        if (!volumeDVR)
-            Debug.LogWarning("[BrainMenuToggleToVolumeDVR] volumeDVR is not assigned yet.");
-    }
-
-    void OnEnable()
-    {
-        // Quand le menu apparait on essaie de construire (si pas déjà fait)
-        TryBuild();
-        // Puis on synchronise l'état visuel → volume
-        SyncAll();
+        WireUIIfNeeded();
     }
 
     void Start()
     {
-        // Cas où OnEnable a été appelé avant que volumeDVR ait fini Start():
-        // On retente ici aussi.
-        TryBuild();
+        TryBuildOnce();
+        SyncAll();
+    }
+
+    void OnEnable()
+    {
+        TryBuildOnce();
         SyncAll();
     }
 
     /// <summary>
-    /// Construit l'UI une seule fois, à partir de volumeDVR.labelInfos.
+    /// Appelle ça si tu veux régénérer la liste à la volée.
     /// </summary>
-    private void TryBuild()
+    public void RebuildFromScratch()
     {
-        if (_built) return;
-
-        if (volumeDVR == null)
-        {
-            Debug.LogWarning("[BrainMenuToggleToVolumeDVR] No VolumeDVR yet, cannot build menu.");
-            return;
-        }
-
-        // On attend que VolumeDVR ait peuplé labelInfos
-        // labelInfos doit contenir les labels extraits de la TF
-        List<VolumeLabelInfoRuntime> infos = volumeDVR.labelInfos;
-        if (infos == null || infos.Count == 0)
-        {
-            Debug.LogWarning("[BrainMenuToggleToVolumeDVR] volumeDVR.labelInfos is empty, menu not built yet.");
-            return;
-        }
-
-        if (!contentRoot || !toggleItemPrefab)
-        {
-            Debug.LogError("[BrainMenuToggleToVolumeDVR] Missing contentRoot or toggleItemPrefab.");
-            return;
-        }
-
-        BuildUIFromLabelInfos(infos);
-        _built = true;
+        _builtMenu = false;
+        TryBuildOnce();
+        SyncAll();
     }
 
     /// <summary>
-    /// Fabrique un toggle par label connu du VolumeDVR.
-    /// On utilise displayName, labelIndex, defaultVisible, et la couleur TF.
+    /// Essaie de résoudre contentRoot + template une seule fois.
     /// </summary>
-    private void BuildUIFromLabelInfos(List<VolumeLabelInfoRuntime> infos)
+    private void WireUIIfNeeded()
     {
-        // Nettoyer le Content d'abord
-        for (int i = contentRoot.childCount - 1; i >= 0; i--)
+        if (_wiredUI) return;
+
+        // 1. contentRoot auto
+        if (contentRoot == null)
         {
-            Destroy(contentRoot.GetChild(i).gameObject);
+            ScrollRect sr = GetComponentInChildren<ScrollRect>(true);
+            if (sr != null && sr.content != null)
+            {
+                contentRoot = sr.content;
+            }
+            else
+            {
+                foreach (var rt in GetComponentsInChildren<RectTransform>(true))
+                {
+                    if (rt.name == "Content")
+                    {
+                        contentRoot = rt;
+                        break;
+                    }
+                }
+            }
         }
 
-        _toggles.Clear();
-        _toggleToLabel.Clear();
-
-        foreach (var info in infos)
+        if (contentRoot == null)
         {
-            int idx = info.labelIndex;
-            if (idx < 0 || idx > 255) continue;
+            Debug.LogWarning("[BrainMenu] No contentRoot found. Assign it in inspector.");
+            return;
+        }
 
-            // Optionnel: on ne veut pas spammer l'UI avec 200 labels invisibles
-            if (hideFullyHiddenAtStart && !info.defaultVisible)
+        // 2. choisir le template (_template)
+        if (itemPrefab != null)
+        {
+            _template = itemPrefab;
+        }
+        else
+        {
+            // prend l'enfant "Item 1" si présent
+            for (int i = 0; i < contentRoot.childCount; i++)
             {
-                // Si par défaut c'est complètement masqué (alpha quasi zéro)
-                // tu peux choisir de ne pas créer d'entrée.
-                continue;
+                Transform ch = contentRoot.GetChild(i);
+                if (ch.name == "Item 1")
+                {
+                    _template = ch.gameObject;
+                    break;
+                }
             }
 
-            GameObject go = Instantiate(toggleItemPrefab, contentRoot);
-
-            // Récupération du Toggle
-            Toggle t = go.GetComponentInChildren<Toggle>(true);
-            if (t == null)
+            // fallback = premier enfant
+            if (_template == null && contentRoot.childCount > 0)
             {
-                Debug.LogError("[BrainMenuToggleToVolumeDVR] toggleItemPrefab has no Toggle component.");
-                Destroy(go);
-                continue;
+                _template = contentRoot.GetChild(0).gameObject;
             }
+        }
 
-            // on ne veut pas de ToggleGroup lock step
-            if (t.group != null) t.group = null;
+        if (_template == null)
+        {
+            Debug.LogWarning("[BrainMenu] No itemPrefab or fallback template found.");
+            return;
+        }
 
-            // Nom affiché
-            string niceName = string.IsNullOrEmpty(info.displayName)
-                ? $"Label {idx}"
-                : info.displayName;
+        // IMPORTANT : on veut que le template de base soit caché dans la scène.
+        _template.SetActive(false);
 
+        _wiredUI = true;
+    }
+
+private void TryBuildOnce()
+{
+    if (_builtMenu) return;
+
+    // Trouve VolumeDVR
+    if (volumeDVR == null)
+        volumeDVR = FindObjectOfType<VolumeDVR>();
+
+    if (volumeDVR == null)
+    {
+        Debug.LogWarning("[BrainMenu] Aucun VolumeDVR trouvé.");
+        return;
+    }
+
+    // Trouve Content root
+    if (contentRoot == null)
+    {
+        ScrollRect sr = GetComponentInChildren<ScrollRect>(true);
+        if (sr != null && sr.content != null)
+            contentRoot = sr.content;
+    }
+
+    if (contentRoot == null)
+    {
+        Debug.LogWarning("[BrainMenu] Aucun contentRoot assigné.");
+        return;
+    }
+
+    // Si prefab pas défini, prend le premier enfant existant
+    if (itemPrefab == null)
+    {
+        if (contentRoot.childCount > 0)
+            itemPrefab = contentRoot.GetChild(0).gameObject;
+        else
+        {
+            Debug.LogWarning("[BrainMenu] Aucun itemPrefab trouvé.");
+            return;
+        }
+    }
+
+    // Cache le template
+    itemPrefab.SetActive(false);
+
+    // Nettoie tout sauf le template
+    for (int i = contentRoot.childCount - 1; i >= 0; i--)
+    {
+        var ch = contentRoot.GetChild(i);
+        if (ch.gameObject != itemPrefab)
+            Destroy(ch.gameObject);
+    }
+
+        if (volumeDVR.labelInfos.Count <= 0)
+            Debug.LogWarning("[BrainMenu] No label found.");
+        BuildUIFromLabelInfos(volumeDVR.labelInfos);
+    _builtMenu = true;
+}
+
+
+private void BuildUIFromLabelInfos(List<VolumeLabelInfoRuntime> infos)
+{
+    if (infos == null || infos.Count == 0) return;
+
+    foreach (var info in infos)
+    {
+        // Ignore si on veut cacher les labels invisibles
+        if (hideFullyHiddenAtStart && !info.defaultVisible)
+            continue;
+
+        // Clone identique du prefab
+        GameObject clone = Instantiate(itemPrefab, contentRoot);
+        clone.name = info.displayName != "" ? info.displayName : $"Label {info.labelIndex}";
+        clone.SetActive(true);
+
+        // Trouve le Toggle et le texte
+        Toggle toggle = clone.GetComponentInChildren<Toggle>(true);
+        Text text = clone.GetComponentInChildren<Text>(true);
 #if TMP_PRESENT || UNITY_TEXTMESHPRO
-            TMP_Text tmp = go.GetComponentInChildren<TMP_Text>(true);
-            if (tmp != null)
-                tmp.text = niceName;
+        TMP_Text tmpText = clone.GetComponentInChildren<TMP_Text>(true);
 #endif
-            Text legacy = go.GetComponentInChildren<Text>(true);
-            if (legacy != null)
-                legacy.text = niceName;
 
-            // État du toggle initial = visibilité par défaut dans le volume
-            // (defaultVisible ~ alpha>0 à l'import)
-            t.isOn = info.defaultVisible;
+        if (text != null) text.text = info.displayName;
+#if TMP_PRESENT || UNITY_TEXTMESHPRO
+        if (tmpText != null) tmpText.text = info.displayName;
+#endif
 
-            // Si on veut, on peut colorer un patch UI avec la couleur du label
-            // Cherche une Image enfant nommée "ColorSwatch" par ex
-            Image swatch = FindChildImageByName(go.transform, "ColorSwatch");
-            if (swatch != null)
-            {
-                // On prend la couleur du TF (RGB). On ne va pas multiplier par alpha,
-                // sinon les trucs translucides deviennent gris.
-                swatch.color = new Color(info.color.r, info.color.g, info.color.b, 1f);
-            }
+        // Mets le toggle à l’état par défaut
+        toggle.isOn = info.defaultVisible;
 
-            // On mappe ce toggle à ce labelIndex
-            _toggles.Add(t);
-            _toggleToLabel[t] = idx;
-
-            // Listener runtime : cocher/ décocher => SetLabelVisible(label, bool)
-            int captured = idx;
-            t.onValueChanged.AddListener(v =>
-            {
-                if (volumeDVR != null)
-                    volumeDVR.SetLabelVisible(captured, v);
-            });
-
-            // (debug convenience)
-            var debugIndex = go.GetComponent<BrainMenuItemLabelIndex>();
-            if (debugIndex == null)
-                debugIndex = go.AddComponent<BrainMenuItemLabelIndex>();
-            debugIndex.labelIndex = idx;
-        }
+        // Ajoute juste la fonction VolumeDVR sans rien supprimer
+        toggle.onValueChanged.AddListener(isOn =>
+        {
+            volumeDVR.SetLabelVisible(info.labelIndex, isOn);
+        });
     }
 
+    Debug.Log($"[BrainMenu] Créé {infos.Count} toggles depuis {itemPrefab.name}");
+}
+
     /// <summary>
-    /// Appelé quand le menu apparait ou à la demande.
-    /// Pousse l'état actuel de chaque toggle vers VolumeDVR
-    /// pour que le rendu colle à ce que l'UI montre.
+    /// Force la scène VolumeDVR à matcher l'état des toggles,
+    /// et raffraîchit aussi les visuels 'Active'.
     /// </summary>
     public void SyncAll()
     {
+        if (!_builtMenu) return;
         if (volumeDVR == null) return;
 
-        foreach (var t in _toggles)
+        foreach (var uiToggle in _toggles)
         {
-            if (!_toggleToLabel.TryGetValue(t, out int labelIdx))
-                continue;
+            if (uiToggle == null) continue;
+            if (!_toggleToLabel.TryGetValue(uiToggle, out int labelIdx)) continue;
 
-            volumeDVR.SetLabelVisible(labelIdx, t.isOn);
+            bool isOn = uiToggle.isOn;
+
+            // pousser état dans VolumeDVR
+            volumeDVR.SetLabelVisible(labelIdx, isOn);
+
+            // afficher l'icône Active si présente
+            Transform activeMarkTf = FindChildByName(uiToggle.transform.root, "Active");
+            if (activeMarkTf != null)
+                activeMarkTf.gameObject.SetActive(isOn);
         }
     }
 
-    /// Cherche récursivement une Image enfant avec ce nom (ex: "ColorSwatch").
-    private Image FindChildImageByName(Transform root, string name)
+    // Helpers utilitaires
+    private Transform FindChildByName(Transform root, string name)
+    {
+        foreach (Transform c in root.GetComponentsInChildren<Transform>(true))
+        {
+            if (c.name == name)
+                return c;
+        }
+        return null;
+    }
+
+    private Image FindImageChildByName(Transform root, string name)
     {
         foreach (var img in root.GetComponentsInChildren<Image>(true))
         {
-            if (img.gameObject.name == name) return img;
+            if (img.name == name)
+                return img;
         }
         return null;
     }
 }
 
-
-// Petit helper debug purement informatif dans l'Inspector.
+/// <summary>
+/// Juste pour afficher le labelIndex dans l'Inspector sur chaque item clone.
+/// </summary>
 public class BrainMenuItemLabelIndex : MonoBehaviour
 {
-    [Range(0,255)]
+    [Range(0, 255)]
     public int labelIndex = 0;
 }
