@@ -8,14 +8,12 @@ public class CanvasXRSetup : MonoBehaviour
         var canvas = GetComponent<Canvas>();
         if (canvas.renderMode == RenderMode.WorldSpace && canvas.worldCamera == null)
         {
-            // essaie d’abord Camera.main
             if (Camera.main != null)
             {
                 canvas.worldCamera = Camera.main;
                 return;
             }
 
-            // fallback : prend n’importe quelle caméra active
             var cams = FindObjectsOfType<Camera>();
             if (cams.Length > 0)
             {

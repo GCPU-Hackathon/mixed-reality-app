@@ -35,20 +35,17 @@ public class XRMenuItemInteractable : MonoBehaviour
     {
         bool newState = true;
 
-        // si on a un Toggle visuel, on l'inverse
         if (uiToggle != null)
         {
             newState = !uiToggle.isOn;
             uiToggle.isOn = newState;
         }
 
-        // icône "Active"
         if (activeMark != null)
         {
             activeMark.SetActive(newState);
         }
 
-        // propager au volume
         if (volumeDVR != null)
         {
             volumeDVR.SetLabelVisible(labelIndex, newState);
